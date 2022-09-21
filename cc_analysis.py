@@ -4,7 +4,7 @@ import pandas as pd
 from time import time
 
 node_cols = ["network", "node", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias"]
-network_cols = ["network", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc"]
+network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc"]
 
 def weightedMeanBias(df):
     top = sum(df.apply(
@@ -34,21 +34,22 @@ def computeMeasures(networks):
             nodeData = pd.concat([nodeData, x])
 
         # compute network avgs and vars of node level measures here
-        dc = network.derrida_coefficient(nsamples=1000)
+        dc = network.derrida_coefficient(nsamples=1000) * network.Nnodes
         netMeans = nodeData[nodeData["network"]==network.name].drop(columns=["network", "node"]).mean()
         curNetNodes = nodeData[nodeData["network"]==network.name]
         x = pd.DataFrame({
             network_cols[0]: network.name,
-            network_cols[1]: netMeans[network_cols[1]],
+            network_cols[1]: network.Nnodes,
             network_cols[2]: netMeans[network_cols[2]],
             network_cols[3]: netMeans[network_cols[3]],
             network_cols[4]: netMeans[network_cols[4]],
             network_cols[5]: netMeans[network_cols[5]],
             network_cols[6]: netMeans[network_cols[6]],
             network_cols[7]: netMeans[network_cols[7]],
-            network_cols[8]: weightedMeanBias(curNetNodes),
-            network_cols[9]: netMeans["bias"],
-            network_cols[10]: dc
+            network_cols[8]: netMeans[network_cols[8]],
+            network_cols[9]: weightedMeanBias(curNetNodes),
+            network_cols[10]: netMeans["bias"],
+            network_cols[11]: dc
         }, index=[0])
         networkData = pd.concat([networkData, x])
 
