@@ -6,6 +6,16 @@ from time import time
 node_cols = ["network", "node", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias"]
 network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc"]
 
+def activities(node):
+    return node.edge_effectiveness(bound="upper")
+
+def sensitivity(node, norm=False):
+    x = sum(activities(node))
+    if norm:
+        return x / node.k
+    else:
+        return x
+
 def weightedMeanBias(df):
     top = sum(df.apply(
         func = lambda s: s["bias"] * (2**s["k"]),
@@ -62,9 +72,11 @@ def computeMeasures(networks):
 # bias, H(bias)
 def _computeMeasures(node, network):
     ke = node.effective_connectivity(norm=False)
-    s = node.sensitivity(norm=False)
+    # s = node.sensitivity(norm=False)
+    s = sensitivity(node, norm=False)
     keNorm = node.effective_connectivity(norm=True)
-    sNorm = node.sensitivity(norm=True)
+    # sNorm = node.sensitivity(norm=True)
+    sNorm = sensitivity(node, norm=True)
     bias = node.bias()
 
     x = pd.DataFrame({
