@@ -1,10 +1,11 @@
 from cana.boolean_network import BooleanNetwork
 from cana.datasets.bio import THALIANA, DROSOPHILA, BUDDING_YEAST, load_all_cell_collective_models
 import pandas as pd
+import numpy as np
 from time import time
 
 node_cols = ["network", "node", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias"]
-network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc"]
+network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc", "avgH", "avgV"]
 
 def activities(node):
     return node.edge_effectiveness(bound="upper")
@@ -43,6 +44,10 @@ def computeMeasures(networks):
             # print(x)
             nodeData = pd.concat([nodeData, x])
 
+        avgV = np.nanmean([node.bias()*(1-node.bias()) for node in network.nodes])
+        avgH = np.nanmean([-node.bias()*np.log2(node.bias())-(1-node.bias())*np.log2(1-node.bias()) for node in network.nodes])
+        
+        
         # compute network avgs and vars of node level measures here
         dc = network.derrida_coefficient(nsamples=1000) * network.Nnodes
         netMeans = nodeData[nodeData["network"]==network.name].drop(columns=["network", "node"]).mean()
@@ -59,7 +64,9 @@ def computeMeasures(networks):
             network_cols[8]: netMeans[network_cols[8]],
             network_cols[9]: weightedMeanBias(curNetNodes),
             network_cols[10]: netMeans["bias"],
-            network_cols[11]: dc
+            network_cols[11]: dc,
+            network_cols[12]: avgH,
+            network_cols[13]: avgV
         }, index=[0])
         networkData = pd.concat([networkData, x])
 
