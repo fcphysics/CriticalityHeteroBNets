@@ -5,7 +5,7 @@ import numpy as np
 from time import time
 
 node_cols = ["network", "node", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias"]
-network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc", "avgH", "avgV"]
+network_cols = ["network", "Nnodes", "k", "ke", "keN", "s", "sN", "kc", "kcN", "bias", "biasUnweighted", "dc", "avgH", "avgV", "avgKV","avgKeV","avgKeH"]
 
 def activities(node):
     return node.edge_effectiveness(bound="upper")
@@ -44,12 +44,21 @@ def computeMeasures(networks):
             # print(x)
             nodeData = pd.concat([nodeData, x])
 
-        avgV = np.nanmean([node.bias()*(1-node.bias()) for node in network.nodes])
-        avgH = np.nanmean([-node.bias()*np.log2(node.bias())-(1-node.bias())*np.log2(1-node.bias()) for node in network.nodes])
+        avgV = np.mean([node.bias()*(1-node.bias()) for node in network.nodes])
+        avgKV = np.mean([node.bias()*(1-node.bias())*node.k for node in network.nodes])
+        avgKeV = np.mean([node.bias()*(1-node.bias())*node.effective_connectivity(norm=False) for node in network.nodes])
         
+        avgH = 0
+        avgKeH = 0
+        for node in network.nodes:
+            if not(node.bias() == 1 or node.bias() == 0):
+                avgH += -node.bias()*np.log2(node.bias())-(1-node.bias())*np.log2(1-node.bias())
+                avgKeH += (-node.bias()*np.log2(node.bias())-(1-node.bias())*np.log2(1-node.bias()))*node.effective_connectivity(norm=False)
+        avgH = avgH / len(network.nodes)
+        avgKeH = avgKeH / len(network.nodes)
         
         # compute network avgs and vars of node level measures here
-        dc = network.derrida_coefficient(nsamples=2000) * network.Nnodes
+        dc = network.derrida_coefficient(nsamples=8000) * network.Nnodes
         netMeans = nodeData[nodeData["network"]==network.name].drop(columns=["network", "node"]).mean()
         curNetNodes = nodeData[nodeData["network"]==network.name]
         x = pd.DataFrame({
@@ -66,7 +75,10 @@ def computeMeasures(networks):
             network_cols[10]: netMeans["bias"],
             network_cols[11]: dc,
             network_cols[12]: avgH,
-            network_cols[13]: avgV
+            network_cols[13]: avgV,
+            network_cols[14]: avgKV,
+            network_cols[15]: avgKeV,
+            network_cols[16]: avgKeH
         }, index=[0])
         networkData = pd.concat([networkData, x])
 
