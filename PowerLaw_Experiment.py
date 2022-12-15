@@ -34,10 +34,21 @@ def power_law_bn(N=100, m=15, gamma=2.25, bias=0.5):
 
 def node_properties(node: BooleanNode):
 
-    ke = node.effective_connectivity(norm=False)
-    s = sum(node.edge_effectiveness(bound="upper"))
+    if node.k >= 2:
+        ke = node.effective_connectivity(norm=False)
+    else:
+        ke = int(not node.constant)
+    ks = sum(node.edge_effectiveness(bound="upper"))
 
-    return [node.k, ke, ke-s]
+    p = node.bias()
+    var = p*(1.0-p)
+    if var == 0.0:
+        h = 0.0
+    else:
+        h = -p*np.log2(p) - (1.0-p)*np.log2(1.0-p)
+
+    #return [node.k, ke, ke-s, len(node.outputs), np.sum(np.array(node.outputs).astype(int))]
+    return [node.k, ke, ks, p, var, h]
 
 
 ## State Space Definition
@@ -47,38 +58,38 @@ bias = np.arange(0.05, 0.5, 0.05)
 ## Simulation Parameters
 num_nets = 10
 n_walkers = 1000
+N = int(sys.argv[1])
+expn = int(sys.argv[2])
 
-## Output data
-f = open('Results-{}.csv'.format(sys.argv[1]), 'w')
+## Output data - File name as number of nodes and experiment number
+f = open('Results/Results-N{n:d}-{expn:d}.csv'.format(n=N, expn=expn), 'w')
 writer = csv.writer(f)
-writer.writerow(['gamma', 'bias', 'Derrida', 'avgK', 'medK', 'avgKe', 'medKe', 'avgKc', 'medKc'])
+## Include avgH, avgV
+writer.writerow(['gamma', 'bias', 'Derrida', 'avgK', 'avgKe', 'avgS', 'avgP', 'avgH', 'avgV'])
 
 ## Placeholder Arrays
 Dc = np.zeros(num_nets)
+avgP = np.zeros(num_nets)
+avgV = np.zeros(num_nets)
+avgH = np.zeros(num_nets)
 avgK = np.zeros((3, num_nets))
-medK = np.zeros((3, num_nets))
 
 for g in gamma:
     for p in bias:
         for idx in range(num_nets):
 
-            BN = power_law_bn(N=100, m=15, gamma=g, bias=p)
-            #luts, inputs = cw.conversions.cana2cupyLUT(BN)
+            BN = power_law_bn(N=N, m=15, gamma=g, bias=p)
 
-            #cw_model = cw.Model(lookup_tables=luts, node_regulators=inputs, n_time_steps=1, n_walkers=n_walkers)
-
-            #Dc[idx] = cw_model.derrida_coefficient(threads_per_block=(16, 16))
-            start = time()
-            Dc[idx] = BN.derrida_coefficient(nsamples=n_walkers)*100
-            print("Time to Derrida: {}".format(time()-start))
+            Dc[idx] = BN.derrida_coefficient(nsamples=n_walkers)*N
 
             K = np.transpose([node_properties(node) for node in BN.nodes])
             for i in range(3):
                 avgK[i][idx] = np.mean(K[i])
-                medK[i][idx] = np.median(K[i]) 
 
-            print("Time to measure: {}".format(time()-start))
+            avgP[idx] = np.mean(K[3])
+            avgV[idx] = np.mean(K[4])
+            avgH[idx] = np.mean(K[5])
 
-        writer.writerow([g, p, Dc, avgK[0], medK[0], avgK[1], medK[1], avgK[2], medK[2]])
+        writer.writerow([g, p, Dc, avgK[0], avgK[1], avgK[2], avgP, avgH, avgV])
 
 f.close()
