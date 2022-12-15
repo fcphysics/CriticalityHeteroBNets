@@ -49,7 +49,7 @@ def computeMeasures(networks):
         
         
         # compute network avgs and vars of node level measures here
-        dc = network.derrida_coefficient(nsamples=1000) * network.Nnodes
+        dc = network.derrida_coefficient(nsamples=2000) * network.Nnodes
         netMeans = nodeData[nodeData["network"]==network.name].drop(columns=["network", "node"]).mean()
         curNetNodes = nodeData[nodeData["network"]==network.name]
         x = pd.DataFrame({
