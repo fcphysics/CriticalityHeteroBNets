@@ -62,7 +62,7 @@ N = int(sys.argv[1])
 expn = int(sys.argv[2])
 
 ## Output data - File name as number of nodes and experiment number
-f = open('Results/Results-N{n:d}-{expn:d}.csv'.format(n=N, expn=expn), 'w')
+f = open('Results{n:d}/Results-{expn:d}.csv'.format(n=N, expn=expn), 'w')
 writer = csv.writer(f)
 ## Include avgH, avgV
 writer.writerow(['gamma', 'bias', 'Derrida', 'avgK', 'avgKe', 'avgS', 'avgP', 'avgH', 'avgV'])
